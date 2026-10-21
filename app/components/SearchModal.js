@@ -7,11 +7,26 @@ import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Search, X, ArrowRight } from 'lucide-react';
-import { products } from '../data/products';
+import { products as fallbackProducts } from '../data/products';
 
 export default function SearchModal({ isOpen, onClose }) {
+  const [productList, setProductList] = useState(fallbackProducts);
   const [query, setQuery] = useState('');
   const inputRef = useRef(null);
+
+  // Fetch live products when opened
+  useEffect(() => {
+    if (isOpen) {
+      fetch('/api/products')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.products?.length) {
+            setProductList(data.products);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen]);
 
   // Auto-focus input when modal opens
   useEffect(() => {
@@ -39,10 +54,10 @@ export default function SearchModal({ isOpen, onClose }) {
   // Filter products
   const q = query.trim().toLowerCase();
   const results = q.length >= 2
-    ? products.filter((p) =>
+    ? productList.filter((p) =>
         p.name.toLowerCase().includes(q) ||
         p.category.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q) ||
+        p.description?.toLowerCase().includes(q) ||
         (p.badge && p.badge.toLowerCase().includes(q))
       )
     : [];

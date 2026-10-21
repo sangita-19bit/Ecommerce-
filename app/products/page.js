@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { SlidersHorizontal, ChevronDown, X, Search } from 'lucide-react';
-import { products } from '../data/products';
+import { useState, useMemo, useEffect } from 'react';
+import { SlidersHorizontal, ChevronDown, X, Search, Loader2 } from 'lucide-react';
+import { products as fallbackProducts } from '../data/products';
 import ProductCard from '../components/ProductCard';
 import EmptyState from '../components/EmptyState';
 
@@ -14,10 +14,11 @@ const SORT_OPTIONS = [
   { value: 'name',       label: 'Name A–Z' },
 ];
 
-const CATEGORIES = ['All', ...new Set(products.map((p) => p.category))];
-const BADGES     = ['All', 'Best Seller', 'New'];
+const BADGES = ['All', 'Best Seller', 'New'];
 
 export default function ShopPage() {
+  const [productList, setProductList] = useState(fallbackProducts);
+  const [loading, setLoading] = useState(false);
   const [search,   setSearch]   = useState('');
   const [category, setCategory] = useState('All');
   const [badge,    setBadge]    = useState('All');
@@ -26,8 +27,35 @@ export default function ShopPage() {
   const [minRating, setMinRating] = useState(0);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
+  // Fetch products from MongoDB API
+  useEffect(() => {
+    let ignore = false;
+    async function loadProducts() {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/products');
+        if (res.ok) {
+          const data = await res.json();
+          if (!ignore && data.products && data.products.length > 0) {
+            setProductList(data.products);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch products from MongoDB:', err);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+    loadProducts();
+    return () => { ignore = true; };
+  }, []);
+
+  const categories = useMemo(() => {
+    return ['All', ...new Set(productList.map((p) => p.category))];
+  }, [productList]);
+
   const filtered = useMemo(() => {
-    let list = [...products];
+    let list = [...productList];
 
     // Search
     if (search.trim()) {
@@ -65,7 +93,7 @@ export default function ShopPage() {
     }
 
     return list;
-  }, [search, category, badge, maxPrice, minRating, sort]);
+  }, [productList, search, category, badge, maxPrice, minRating, sort]);
 
   function clearFilters() {
     setSearch('');
@@ -169,7 +197,7 @@ export default function ShopPage() {
                 Category
               </legend>
               <div className="space-y-2">
-                {CATEGORIES.map((cat) => (
+                {categories.map((cat) => (
                   <label key={cat} className="flex items-center gap-2.5 cursor-pointer group">
                     <input
                       type="radio"

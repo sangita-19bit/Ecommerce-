@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -15,16 +15,61 @@ import ProductCard from '../../components/ProductCard';
 const TABS = ['Description', 'Benefits', 'Ingredients', 'Usage'];
 
 export default function ProductDetailPage({ params }) {
-  const product = getProductBySlug(params.id);
-  if (!product) notFound();
+  // Resolve params for Next.js 15 compatibility
+  const resolvedParams = React.use ? React.use(params) : params;
+  const productId = resolvedParams?.id;
 
-  const related = getRelatedProducts(params.id, 3);
+  const fallbackProduct = getProductBySlug(productId);
+  const [product, setProduct] = useState(fallbackProduct);
+  const [related, setRelated] = useState(() => getRelatedProducts(productId, 3));
+  const [loading, setLoading] = useState(!fallbackProduct);
+
   const { addToCart } = useCart();
   const { show } = useToast();
 
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('Description');
   const [added, setAdded] = useState(false);
+
+  // Fetch product from MongoDB API
+  useEffect(() => {
+    let ignore = false;
+    async function fetchProduct() {
+      try {
+        const res = await fetch(`/api/products/${productId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (!ignore && data.product) {
+            setProduct(data.product);
+            if (data.related && data.related.length > 0) {
+              setRelated(data.related);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load product from MongoDB:', err);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+
+    if (productId) {
+      fetchProduct();
+    }
+    return () => { ignore = true; };
+  }, [productId]);
+
+  if (!product && !loading) {
+    notFound();
+  }
+
+  if (!product) {
+    return (
+      <div className="bg-ivory min-h-screen py-20 flex items-center justify-center">
+        <p className="font-body text-stone">Loading botanical product…</p>
+      </div>
+    );
+  }
 
   function handleAddToCart() {
     addToCart(product, quantity);

@@ -1,9 +1,10 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Leaf, Droplets, Shield } from 'lucide-react';
-import { products } from './data/products';
+import { products as fallbackProducts } from './data/products';
 import ProductCard from './components/ProductCard';
 
 // ── Promise pillars ─────────────────────────────────────────────────────────
@@ -48,6 +49,19 @@ const categories = [
 ];
 
 export default function Home() {
+  const [productList, setProductList] = useState(fallbackProducts);
+
+  useEffect(() => {
+    fetch('/api/products')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.products?.length) {
+          setProductList(data.products);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="bg-ivory">
 
@@ -186,8 +200,8 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 stagger-children">
-            {products.map((product) => (
-              <div key={product.id} className="animate-fade-in-up">
+            {productList.map((product) => (
+              <div key={product.id || product._id} className="animate-fade-in-up">
                 <ProductCard product={product} />
               </div>
             ))}

@@ -4,7 +4,9 @@ import Navigation from './components/Navigation';
 import Footer from './components/Footer';
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
+import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './components/Toast';
+import AuthModal from './components/AuthModal';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -40,17 +42,20 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
       <body className="antialiased">
-        <CartProvider>
-          <WishlistProvider>
-            <ToastProvider>
-              <Navigation />
-              <main id="main-content" className="pt-[72px] min-h-screen">
-                {children}
-              </main>
-              <Footer />
-            </ToastProvider>
-          </WishlistProvider>
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <WishlistProvider>
+              <ToastProvider>
+                <Navigation />
+                <main id="main-content" className="pt-[72px] min-h-screen">
+                  {children}
+                </main>
+                <Footer />
+                <AuthModal />
+              </ToastProvider>
+            </WishlistProvider>
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );
